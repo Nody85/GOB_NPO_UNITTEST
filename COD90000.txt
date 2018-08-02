@@ -1,0 +1,28 @@
+OBJECT Codeunit 90000 GOB Testrunner
+{
+  OBJECT-PROPERTIES
+  {
+    Date=02.08.18;
+    Time=21:51:05;
+    Modified=Yes;
+    Version List=GOB_NPO_TEST;
+  }
+  PROPERTIES
+  {
+    Subtype=TestRunner;
+    TestIsolation=Codeunit;
+    OnRun=BEGIN
+            CODEUNIT.RUN(CODEUNIT::"GOB Init");
+            CODEUNIT.RUN(CODEUNIT::"GOB Event");
+            CODEUNIT.RUN(CODEUNIT::"GOB Course");
+          END;
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+

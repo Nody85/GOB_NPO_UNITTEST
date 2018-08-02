@@ -1,0 +1,122 @@
+OBJECT Codeunit 90001 GOB Init
+{
+  OBJECT-PROPERTIES
+  {
+    Date=02.08.18;
+    Time=23:24:21;
+    Modified=Yes;
+    Version List=GOB_NPO_TEST;
+  }
+  PROPERTIES
+  {
+    Subtype=Test;
+    TestPermissions=NonRestrictive;
+    OnRun=BEGIN
+            InitSetup;
+            InitEventTemplate;
+          END;
+
+  }
+  CODE
+  {
+
+    [Test]
+    PROCEDURE InitSetup@1000000000();
+    VAR
+      NoSeries@1000000001 : Record 308;
+      NoSeriesLine@1000000002 : Record 309;
+      EventmanagementSetup@1000000000 : Record 5059750;
+    BEGIN
+      NoSeries.INIT;
+      NoSeries.Code := 'EVENT_NOS';
+      NoSeries.Description := 'EVENT NO SERIES';
+      NoSeries."Default Nos." := TRUE;
+      NoSeries."Manual Nos." := TRUE;
+      NoSeries.INSERT;
+
+      NoSeriesLine.VALIDATE("Series Code",'EVENT_NOS');
+      NoSeriesLine."Line No." := 10000;
+      NoSeriesLine."Starting Date" := TODAY;
+      NoSeriesLine."Starting No." := 'ENOS000001';
+      NoSeriesLine."Ending No." := 'ENOS999999';
+      NoSeriesLine."Increment-by No." := 1;
+      NoSeriesLine.Open := TRUE;
+      NoSeriesLine.INSERT;
+
+      NoSeries.INIT;
+      NoSeries.Code := 'EVENT_NOS_TEMPLATE';
+      NoSeries.Description := 'EVENT NO SERIES TEMPLATE';
+      NoSeries."Default Nos." := TRUE;
+      NoSeries."Manual Nos." := TRUE;
+      NoSeries.INSERT;
+
+      NoSeriesLine.VALIDATE("Series Code",'EVENT_NOS_TEMPLATE');
+      NoSeriesLine."Line No." := 10000;
+      NoSeriesLine."Starting Date" := TODAY;
+      NoSeriesLine."Starting No." := 'ENOST000001';
+      NoSeriesLine."Ending No." := 'ENOST999999';
+      NoSeriesLine."Increment-by No." := 1;
+      NoSeriesLine.Open := TRUE;
+      NoSeriesLine.INSERT;
+
+      EventmanagementSetup.INIT;
+      EventmanagementSetup.VALIDATE("Event Template Nos.",'EVENT_NOS_TEMPLATE');
+      EventmanagementSetup.VALIDATE("Event Nos.",'EVENT_NOS');
+      EventmanagementSetup.VALIDATE("Invoice Nos.",'V-RG');
+      EventmanagementSetup.VALIDATE("Posted Invoice Nos.",'V-RG+');
+      EventmanagementSetup.VALIDATE("Credit Memo Nos.",'E-RG');
+      EventmanagementSetup.VALIDATE("Posted Credit Memo Nos.",'E-RG+');
+      EventmanagementSetup.VALIDATE("Gen. Prod. Posting Group",'OHNE MWST');
+      EventmanagementSetup.INSERT;
+    END;
+
+    [Test]
+    PROCEDURE InitEventTemplate@1000000001();
+    VAR
+      SectionReferat@1000000000 : Record 5059778;
+      Cancellation@1000000001 : Record 5059763;
+      EventTemplate@1000000002 : Record 5059753;
+    BEGIN
+      SectionReferat.INIT;
+      SectionReferat.Code := 'SPITZENSPO';
+      SectionReferat.Description := 'SPITZENSPORT';
+      SectionReferat."Description 2" := 'DEUTSCHLAND';
+      SectionReferat.INSERT;
+
+      SectionReferat.INIT;
+      SectionReferat.Code := 'BREITENSPO';
+      SectionReferat.Description := 'BREITENSPORT';
+      SectionReferat."Description 2" := 'DEUTSCHLAND';
+      SectionReferat.INSERT;
+
+      Cancellation.INIT;
+      Cancellation.Code := 'CANCEL';
+      Cancellation.Description := 'STD CANCELATION';
+      Cancellation."Due Date Calculation Stage 1" := '1';
+      Cancellation."Cancellation Amount Stage 1" := 100;
+      Cancellation."Cancellation Charge % Stage 1" := 10;
+      Cancellation."Due Date Calculation Stage 2" := '1';
+      Cancellation."Cancellation Amount Stage 2" := 200;
+      Cancellation."Cancellation Charge % Stage 2" := 20;
+      Cancellation."Due Date Calculation Stage 3" := '1';
+      Cancellation."Cancellation Amount Stage 3" := 300;
+      Cancellation."Cancellation Charge % Stage 3" := 30;
+      Cancellation.VALIDATE("Gen. Prod. Posting Group",'ROHMAT');
+      Cancellation.VALIDATE("VAT Prod. Posting Group",'MWST.19');
+      Cancellation.INSERT;
+
+      EventTemplate.INIT;
+      EventTemplate.Kind := '';
+      EventTemplate.Description := 'Groáes Event';
+      EventTemplate."Description 2" := 'Party On';
+      //EventTemplate."Place of Event"
+      //EventTemplate.Duration := 2T;
+      EventTemplate.VALIDATE("Cancellation Code",'CANCEL');
+      EventTemplate.INSERT;
+    END;
+
+    BEGIN
+    END.
+  }
+}
+

@@ -1,0 +1,25 @@
+OBJECT Codeunit 90002 GOB Event
+{
+  OBJECT-PROPERTIES
+  {
+    Date=02.08.18;
+    Time=22:32:14;
+    Modified=Yes;
+    Version List=GOB_NPO_TEST;
+  }
+  PROPERTIES
+  {
+    Subtype=Test;
+    TestPermissions=NonRestrictive;
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
