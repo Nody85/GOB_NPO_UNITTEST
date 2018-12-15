@@ -1,0 +1,154 @@
+OBJECT Codeunit 134926 Table Relation Test
+{
+  OBJECT-PROPERTIES
+  {
+    Date=27.01.18;
+    Time=12:00:00;
+    Version List=NAVW111.00.00,Test;
+  }
+  PROPERTIES
+  {
+    Subtype=Test;
+    TestPermissions=NonRestrictive;
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      InvalidTableRelationErr@1000 : TextConst 'ENU=The type of Table %1 in Field %2 is incompatible with Table %3 Field %4.';
+
+    [Test]
+    PROCEDURE ValidateFieldRelationCompatibility@2();
+    VAR
+      TempTableRelationsMetadata@1002 : TEMPORARY Record 2000000141;
+      CurrentTableID@1000 : Integer;
+      CurrentFieldID@1003 : Integer;
+    BEGIN
+      CreateTemporaryTablerelations(TempTableRelationsMetadata);
+      ExcludeKnownInvalidTableRelationsFromBeingChecked(TempTableRelationsMetadata);
+
+      TempTableRelationsMetadata.FINDSET;
+      REPEAT
+        IF (TempTableRelationsMetadata."Table ID" <> CurrentTableID) OR (TempTableRelationsMetadata."Field No." <> CurrentFieldID) THEN
+          IF NOT ValidateFieldRelation(TempTableRelationsMetadata) THEN
+            ERROR(InvalidTableRelationErr,
+              TempTableRelationsMetadata."Table ID",TempTableRelationsMetadata."Field No.",
+              TempTableRelationsMetadata."Related Table ID",TempTableRelationsMetadata."Related Field No.");
+        CurrentTableID := TempTableRelationsMetadata."Table ID";
+        CurrentFieldID := TempTableRelationsMetadata."Field No.";
+      UNTIL TempTableRelationsMetadata.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE ValidateFieldRelation@38(VAR TempTableRelationsMetadata@1000 : TEMPORARY Record 2000000141) : Boolean;
+    VAR
+      TempTableRelationsMetadataBufferIter@1003 : TEMPORARY Record 2000000141;
+      Field@1004 : Record 2000000041;
+      RelatedField@1001 : Record 2000000041;
+      MaxRelatedFieldLength@1002 : Integer;
+      RequiredFieldType@1006 : Text;
+      MustHaveTableRelation@1005 : Boolean;
+    BEGIN
+      // <Summary> Fields must have the exact length of the largest field they relate to.
+      // <Summary> Fields must have the same type as the fields they relate to. Exception: if it relates to both Code and Text it must be Text
+      IF NOT (TempTableRelationsMetadata."Test Table Relation" AND TempTableRelationsMetadata."Validate Table Relation") THEN
+        EXIT(TRUE);
+
+      // Loop through all relations this field has to find its required length and type
+      TempTableRelationsMetadataBufferIter.COPY(TempTableRelationsMetadata,TRUE);
+      TempTableRelationsMetadataBufferIter.SETRANGE("Table ID",TempTableRelationsMetadata."Table ID");
+      TempTableRelationsMetadataBufferIter.SETRANGE("Field No.",TempTableRelationsMetadata."Field No.");
+      TempTableRelationsMetadataBufferIter.FINDSET;
+      REPEAT
+        RelatedField.GET(TempTableRelationsMetadataBufferIter."Related Table ID",
+          TempTableRelationsMetadataBufferIter."Related Field No.");
+        MaxRelatedFieldLength := MaxInt(MaxRelatedFieldLength,RelatedField.Len);
+        RequiredFieldType := FindRequiredFieldType(RequiredFieldType,FORMAT(RelatedField.Type));
+        IF TempTableRelationsMetadataBufferIter."Condition Field No." = 0 THEN
+          MustHaveTableRelation := TRUE;
+      UNTIL TempTableRelationsMetadataBufferIter.NEXT = 0;
+
+      // Verify this field has correct length and type
+      Field.GET(TempTableRelationsMetadata."Table ID",TempTableRelationsMetadata."Field No.");
+
+      IF NOT MustHaveTableRelation THEN BEGIN
+        // There may be conditions without a table relation, only validate that table relations can be stored in this field.
+
+        IF Field.Len < MaxRelatedFieldLength THEN
+          EXIT(FALSE);
+
+        IF (RequiredFieldType = 'Code') AND (Field.Type IN [Field.Type::Text,Field.Type::Code]) THEN
+          EXIT(TRUE);
+
+        EXIT(FORMAT(Field.Type) = RequiredFieldType);
+      END;
+
+      IF Field.Len <> MaxRelatedFieldLength THEN
+        EXIT(FALSE);
+
+      EXIT(FORMAT(Field.Type) = RequiredFieldType);
+    END;
+
+    LOCAL PROCEDURE MaxInt@4(Value1@1000 : Integer;Value2@1001 : Integer) : Integer;
+    BEGIN
+      IF Value1 > Value2 THEN
+        EXIT(Value1);
+      EXIT(Value2);
+    END;
+
+    LOCAL PROCEDURE FindRequiredFieldType@10(RequiredFieldType@1000 : Text;RelatedFieldType@1001 : Text) : Text;
+    BEGIN
+      IF RequiredFieldType = '' THEN
+        EXIT(RelatedFieldType);
+
+      IF RequiredFieldType = RelatedFieldType THEN
+        EXIT(RequiredFieldType);
+
+      IF (RequiredFieldType IN ['Text','Code']) AND (RelatedFieldType IN ['Text','Code']) THEN
+        EXIT('Text'); // Only a text field will be able to refer to both a text and code field.
+
+      EXIT('Invalid Relation');
+    END;
+
+    LOCAL PROCEDURE ExcludeKnownInvalidTableRelationsFromBeingChecked@5(VAR TableRelationsMetadata@1000 : TEMPORARY Record 2000000141);
+    BEGIN
+      RemoveTableRelation(TableRelationsMetadata,0,0,17359,1);
+      TableRelationsMetadata.RESET;
+    END;
+
+    LOCAL PROCEDURE RemoveTableRelation@6(VAR TableRelationsMetadata@1000 : TEMPORARY Record 2000000141;TableID@1001 : Integer;FieldID@1002 : Integer;RelatedTableID@1003 : Integer;RelatedFieldID@1004 : Integer);
+    BEGIN
+      TableRelationsMetadata.RESET;
+      IF TableID <> 0 THEN
+        TableRelationsMetadata.SETRANGE("Table ID",TableID);
+      IF FieldID <> 0 THEN
+        TableRelationsMetadata.SETRANGE("Field No.",FieldID);
+      IF RelatedTableID <> 0 THEN
+        TableRelationsMetadata.SETRANGE("Related Table ID",RelatedTableID);
+      IF RelatedFieldID <> 0 THEN
+        TableRelationsMetadata.SETRANGE("Related Field No.",RelatedFieldID);
+      TableRelationsMetadata.DELETEALL;
+    END;
+
+    LOCAL PROCEDURE CreateTemporaryTablerelations@12(VAR TempTableRelationsMetadata@1000 : TEMPORARY Record 2000000141);
+    VAR
+      TableRelationsMetadata@1001 : Record 2000000141;
+    BEGIN
+      TableRelationsMetadata.SETRANGE("Table ID",1,1999999999);
+      TableRelationsMetadata.FINDSET;
+
+      REPEAT
+        TempTableRelationsMetadata := TableRelationsMetadata;
+        TempTableRelationsMetadata.INSERT;
+      UNTIL TableRelationsMetadata.NEXT = 0;
+    END;
+
+    BEGIN
+    {
+      // [FEATURE] [Table Relations Metadata] [Max Field Length]
+    }
+    END.
+  }
+}
+
